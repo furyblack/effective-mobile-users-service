@@ -1,15 +1,19 @@
 import { Schema, model, Document, HydratedDocument  } from 'mongoose';
 
-export type UserRole = 'admin' | 'user';
-
+export enum UserType {
+    admin = 'admin',
+    user = 'user',
+}
 export interface IUser extends Document {
     fullName: string;
     birthDate: Date;
     email: string;
     password: string;
-    role: UserRole;
+    role: UserType;
     isActive: boolean;
 }
+
+
 
 export type UserDocument = HydratedDocument<IUser>
 export type RegisterDto = Omit<IUser, 'role' | 'isActive'>;
@@ -21,20 +25,11 @@ const UserSchema = new Schema<IUser>(
         birthDate: { type: Date, required: true },
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
-        role: { type: String, enum: ['admin', 'user'], default: 'user' },
+        role: { type: String, enum:UserType, default: UserType.user },
         isActive: { type: Boolean, default: true }
     },
     { timestamps: true, versionKey: false }
 );
-// Глобально удаляем пароль и заменяем _id → id
-UserSchema.set('toJSON', {
-    transform: (_doc, ret) => {
-        const obj = ret as any;
-        delete obj.password;
-        obj.id = obj._id;
-        delete obj._id;
-        return obj;
-    }
-});
+
 
 export const UserModel = model<IUser>('User', UserSchema);

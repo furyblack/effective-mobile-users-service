@@ -3,12 +3,13 @@ import { userService } from './user.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
 import { RegisterDto, LoginDto } from "./user.model";
 import { ApiError } from '../../utils/api-error';
+import {UserOutputDto} from "../types/user.output.dto";
 
 class UserController {
     async register(req: Request<{}, {}, RegisterDto>, res: Response, next: NextFunction) {
         try {
             const user = await userService.register(req.body);
-            res.status(201).json(user);
+            res.status(201).json(UserOutputDto.mapToOutput(user));
         } catch (err) {
             next(err);
         }
@@ -31,7 +32,7 @@ class UserController {
             const user = await userService.findById(id);
             if (!user) throw ApiError.notFound('User not found');
 
-            res.json(user);
+            res.json(UserOutputDto.mapToOutput(user));
         } catch (err) {
             next(err);
         }
@@ -40,7 +41,9 @@ class UserController {
     async getAll(req: AuthRequest, res: Response, next: NextFunction) {
         try {
             const users = await userService.findAll();
-            res.json(users);
+
+            const usersOutput = users.map(UserOutputDto.mapToOutput)
+            res.json(usersOutput);
         } catch (err) {
             next(err);
         }
@@ -52,7 +55,8 @@ class UserController {
             const user = await userService.blockUser(id);
             if (!user) throw ApiError.notFound('User not found');
 
-            res.json({ message: 'User blocked', user });
+
+            res.json({ message: 'User blocked', user: UserOutputDto.mapToOutput(user) });
         } catch (err) {
             next(err);
         }
