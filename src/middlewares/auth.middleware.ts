@@ -30,7 +30,7 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
 
 //roles middlewares
 export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
-    if(req.user?.role === 'admin') {
+    if(req.user?.role !== 'admin') {
         return next(ApiError.forbidden('Admins only'))
     }
     next()

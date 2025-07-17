@@ -24,7 +24,17 @@ const UserSchema = new Schema<IUser>(
         role: { type: String, enum: ['admin', 'user'], default: 'user' },
         isActive: { type: Boolean, default: true }
     },
-    { timestamps: true }
+    { timestamps: true, versionKey: false }
 );
+// Глобально удаляем пароль и заменяем _id → id
+UserSchema.set('toJSON', {
+    transform: (_doc, ret) => {
+        const obj = ret as any;
+        delete obj.password;
+        obj.id = obj._id;
+        delete obj._id;
+        return obj;
+    }
+});
 
 export const UserModel = model<IUser>('User', UserSchema);
