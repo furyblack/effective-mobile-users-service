@@ -8,15 +8,19 @@ export class ApiError extends Error {
         Object.setPrototypeOf(this, new.target.prototype);
     }
 
-    static BadRequest(msg: string) {
+    static badRequest(msg: string) {
         return new ApiError(400, msg)
     }
 
-    static Forbidden(msg: string) {
+    static unauthorized(msg: string) {
+        return new ApiError(401, msg);
+    }
+
+    static forbidden(msg: string) {
         return new ApiError(403, msg)
     }
 
-    static NotFound(msg: string) {
+    static notFound(msg: string) {
         return new ApiError(404, msg)
     }
 }

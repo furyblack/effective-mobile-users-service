@@ -1,26 +1,28 @@
-import { Request, Response, NextFunction } from 'express';
+import {NextFunction, Request, Response} from 'express';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
 
-export interface AuthRequest  extends  Request{
-    user?:{userId:string, role:string};
+// Декодированный payload токена
+export interface JwtPayload {
+    userId: string;
+    role: 'admin' | 'user';
 }
 
-export function authMiddleware(req: AuthRequest, res:Response, next: NextFunction){
-    const authHeader = req.headers.authorization;
+// Расширяем Request, чтобы появился req.user
+export interface AuthRequest extends Request {
+    user?: JwtPayload;
+}
 
-    if(!authHeader || !authHeader.startsWith('Bearer ')){
-        return res.status(401).json({message:"требуется авторизация"});
-    }
+export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: 'Unauthorized' });
 
     const token = authHeader.split(' ')[1];
-
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as {userId:string, role:string};
-        req.user = decoded; // теперь в реквесте будет {userId, role}
+        req.user = jwt.verify(token, JWT_SECRET) as JwtPayload;
         next();
-    }catch(err){
-        return res.status(401).json({message:'невалидный или протухший токен'})
+    } catch {
+        return res.status(401).json({ message: 'Invalid token' });
     }
 }

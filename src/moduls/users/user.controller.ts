@@ -1,69 +1,74 @@
 import { Request, Response, NextFunction } from 'express';
-import userService from './user.service';
-import {AuthRequest} from "../../middlewares/auth.middleware";
+import { userService } from './user.service';
+import { AuthRequest } from "../../middlewares/auth.middleware";
+import { RegisterDto, LoginDto } from "./user.model";
+import { ApiError } from '../../utils/api-error';
 
 class UserController {
-    async register(req: Request, res: Response, next: NextFunction) {
+    async register(req: Request<{}, {}, RegisterDto>, res: Response, next: NextFunction) {
         try {
             const user = await userService.register(req.body);
             res.status(201).json(user);
         } catch (err) {
-            next(err); // передадим ошибку в глобальный обработчик
+            next(err);
         }
     }
 
-    async login(req: Request, res: Response, next: NextFunction) {
+    async login(req: Request<{}, {}, LoginDto>, res: Response, next: NextFunction) {
         try {
-            const {email, password} = req.body;
-            const token = await userService.login(email, password);
-            res.json(token);
-        }catch(err) {
+            const { email, password } = req.body;
+            const user = await userService.login(email, password);
+            const token = await userService.generateToken(user);
+            res.json({ token });
+        } catch (err) {
             next(err);
         }
     }
 
     async getById(req: AuthRequest, res: Response, next: NextFunction) {
         try {
-            const {id} = req.params;
+            const { id } = req.params;
+            const user = await userService.findById(id);
+            if (!user) throw ApiError.notFound('User not found');
 
-            //проверка прав
-            if(req.user?.role !== 'admin' && req.user?.userId !== id) {
-                return res.status(403).json({message: 'доступ запрещен'})
+            // Только админ или сам себе
+            if (req.user?.role !== 'admin' && req.user?.userId !== id) {
+                throw ApiError.forbidden('Access denied');
             }
-            const user = await userService.getById(id);
+
             res.json(user);
-        }catch(err) {
+        } catch (err) {
             next(err);
         }
     }
 
     async getAll(req: AuthRequest, res: Response, next: NextFunction) {
         try {
-            if (req.user?.role !== 'admin') {
-                return res.status(403).json({message:'только админ может посмотреть список пользователей '})
-            }
-            const users = await userService.getAllUsers()
+            if (req.user?.role !== 'admin') throw ApiError.forbidden('Admins only');
+
+            const users = await userService.findAll();
             res.json(users);
-        }catch(err) {
+        } catch (err) {
             next(err);
         }
     }
 
     async blockUser(req: AuthRequest, res: Response, next: NextFunction) {
         try {
-            const {id} = req.params;
+            const { id } = req.params;
 
-            //можно самому себя или админу
-            if(req.user?.role !== 'admin' && req.user?.userId !== id) {
-                return res.status(403).json({message:'вы не можете заблокировать пользователя'})
+            if (req.user?.role !== 'admin' && req.user?.userId !== id) {
+                throw ApiError.forbidden('Access denied');
             }
+
             const user = await userService.blockUser(id);
-            res.json({message:'пользователь заблокирован', user});
-        }catch(err) {
+            if (!user) throw ApiError.notFound('User not found');
+
+            res.json({ message: 'User blocked', user });
+        } catch (err) {
             next(err);
         }
     }
 }
 
-export default new UserController();
-
+export const userController = new UserController();

@@ -2,91 +2,44 @@ import userRepository from "./user.repository";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import {ApiError} from "../../utils/api-error";
+import {RegisterDto, UserDocument} from "./user.model";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key'; // добавим в .env
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
 
 class UserService {
-    async register(data:{
-        fullName: string,
-        birthDate: Date,
-        email: string,
-        password: string
-    }): Promise<any>{
-        const { fullName, birthDate, email, password } = data;
+    async register(data: RegisterDto): Promise<UserDocument> {
+        const existing = await userRepository.findByEmail(data.email);
+        if (existing) throw ApiError.badRequest('User with this email already exists');
 
-        //проверяем есть ли уже такой email
-
-        const existing = await userRepository.findByEmail(email);
-
-        if (existing) {
-            throw ApiError.BadRequest('Пользователь с таким email уже существует');
-        }
-
-        //хэшируем пароль
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Создаём пользователя
-        const user = await userRepository.createUser({
-            fullName,
-            birthDate,
-            email,
-            password: hashedPassword,
-        });
-
-        // Убираем пароль из ответа
-        const userObj = user.toObject();
-        delete userObj.password;
-
-        return userObj;
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+        return await userRepository.createUser({...data, password: hashedPassword});
     }
 
-    async login(email: string, password: string) {
+    async login(email: string, password: string): Promise<UserDocument> {
         const user = await userRepository.findByEmail(email);
-        if (!user) {
-            throw  ApiError.BadRequest('неверный email или пароль ')
-        }
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) {
-            throw  ApiError.BadRequest('неверный email или пароль ')
-        }
+        if (!user) throw ApiError.unauthorized('Invalid email or password');
 
-        //генерируем токен
-        const token = jwt.sign(
-            { userId: user.id, role: user.role },
-            JWT_SECRET,
-            { expiresIn: '1h' }
-        )
-        return {accessToken: token}
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) throw ApiError.unauthorized('Invalid email or password');
+
+        return user;
     }
 
-    async getById(id: string) {
-        const user = await userRepository.findById(id);
-        if (!user) {
-            throw ApiError.NotFound('Пользователь не найден');
-        }
-        const userObj = user.toObject();
-        delete userObj.password;
-
-        return userObj;
+    async generateToken(user: UserDocument): Promise<string> {
+        return jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     }
 
-    async getAllUsers() {
-        const users = await userRepository.findAll();
-        return users.map(u =>{
-            const obj = u.toObject();
-            delete obj.password;
-            return obj;
-        })
+    async findById(id: string): Promise<UserDocument | null> {
+        return userRepository.findById(id);
     }
 
-    async blockUser(id:string) {
-        const updated = await userRepository.updateStatus(id, false);
-        if (!updated) throw ApiError.NotFound('Пользователь не найден');
+    async findAll(): Promise<UserDocument[]> {
+        return userRepository.findAll();
+    }
 
-        const obj = updated.toObject();
-        delete obj.password;
-        return obj;
+    async blockUser(id: string): Promise<UserDocument | null> {
+        return userRepository.updateStatus(id, false);
     }
 }
 
-export default new UserService();
+export const userService = new UserService();

@@ -6,7 +6,7 @@ export function validateRequest(req: Request, res: Response, next: NextFunction)
     const errors = validationResult(req)
     if(!errors.isEmpty()){
         return res.status(400).json({
-            message: 'Ощибка валидации',
+            message: 'Validation error',
             errors: errors.array(),
         })
     }

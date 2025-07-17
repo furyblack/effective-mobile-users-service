@@ -1,13 +1,19 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, HydratedDocument  } from 'mongoose';
+
+export type UserRole = 'admin' | 'user';
 
 export interface IUser extends Document {
     fullName: string;
     birthDate: Date;
     email: string;
     password: string;
-    role: 'admin' | 'user';
+    role: UserRole;
     isActive: boolean;
 }
+
+export type UserDocument = HydratedDocument<IUser>
+export type RegisterDto = Omit<IUser, 'role' | 'isActive'>;
+export type LoginDto = Pick<IUser, 'email' | 'password'>;
 
 const UserSchema = new Schema<IUser>(
     {

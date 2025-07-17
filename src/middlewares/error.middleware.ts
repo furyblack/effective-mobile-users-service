@@ -1,10 +1,9 @@
 import {Request, Response, NextFunction} from "express";
+import {ApiError} from "../utils/api-error";
 
 
-export function errorHandler(err: any, req: Request, res: Response, next: NextFunction){
-    console.error('❌ Error:', err.message);
-
-    const status = err.statusCode ?? 500;
-
-    res.status(status).json({message:err.message || 'внутренняя ошибка сервера'})
+export function errorHandler(err: ApiError | Error, req: Request, res: Response, next: NextFunction) {
+    const status = err instanceof ApiError ? err.statusCode : 500;
+    const message = err.message || 'Internal Server Error';
+    res.status(status).json({ message });
 }
