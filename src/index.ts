@@ -1,10 +1,18 @@
 import { config } from 'dotenv';
+import path from 'path';
 import mongoose from 'mongoose';
 import app from './app';
 
-config();
 
-const PORT = process.env.PORT || 3000;
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFile = nodeEnv === 'production' ? '.env.production' : '.env.development';
+
+config({
+    path: path.resolve(process.cwd(), envFile),
+});
+
+
+const PORT = process.env.PORT || 3003;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/users_service';
 
 async function bootstrap() {

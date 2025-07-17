@@ -1,5 +1,6 @@
 import {NextFunction, Request, Response} from 'express';
 import jwt from 'jsonwebtoken';
+import {ApiError} from "../utils/api-error";
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key';
 
@@ -25,4 +26,21 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
     } catch {
         return res.status(401).json({ message: 'Invalid token' });
     }
+}
+
+//roles middlewares
+export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+    if(req.user?.role === 'admin') {
+        return next(ApiError.forbidden('Admins only'))
+    }
+    next()
+}
+
+export function requireOwnerOrAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+    const { id } = req.params;
+
+    if (req.user?.role !== 'admin' && req.user?.userId !== id) {
+        return next(ApiError.forbidden('Access denied'));
+    }
+    next();
 }

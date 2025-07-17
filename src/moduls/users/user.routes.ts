@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from "../../middlewares/auth.middleware";
+import {authMiddleware, requireAdmin, requireOwnerOrAdmin} from "../../middlewares/auth.middleware";
 import { loginValidation, registerValidation, userIdValidation } from "./user.validation";
 import { validateRequest } from "../../middlewares/validate.middleware";
 import { userController } from "./user.controller";
@@ -25,12 +25,14 @@ router.get(
     authMiddleware,
     userIdValidation,
     validateRequest,
+    requireOwnerOrAdmin,
     userController.getById.bind(userController)
 );
 
 router.get(
     '/users',
     authMiddleware,
+    requireAdmin,
     userController.getAll.bind(userController)
 );
 
@@ -39,6 +41,7 @@ router.patch(
     authMiddleware,
     userIdValidation,
     validateRequest,
+    requireOwnerOrAdmin,
     userController.blockUser.bind(userController)
 );
 

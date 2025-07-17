@@ -31,11 +31,6 @@ class UserController {
             const user = await userService.findById(id);
             if (!user) throw ApiError.notFound('User not found');
 
-            // Только админ или сам себе
-            if (req.user?.role !== 'admin' && req.user?.userId !== id) {
-                throw ApiError.forbidden('Access denied');
-            }
-
             res.json(user);
         } catch (err) {
             next(err);
@@ -44,8 +39,6 @@ class UserController {
 
     async getAll(req: AuthRequest, res: Response, next: NextFunction) {
         try {
-            if (req.user?.role !== 'admin') throw ApiError.forbidden('Admins only');
-
             const users = await userService.findAll();
             res.json(users);
         } catch (err) {
@@ -56,11 +49,6 @@ class UserController {
     async blockUser(req: AuthRequest, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
-
-            if (req.user?.role !== 'admin' && req.user?.userId !== id) {
-                throw ApiError.forbidden('Access denied');
-            }
-
             const user = await userService.blockUser(id);
             if (!user) throw ApiError.notFound('User not found');
 
